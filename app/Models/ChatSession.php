@@ -20,6 +20,16 @@ class ChatSession extends Model
         'user_id',
         'topic_id',
         'title',
+        'is_pinned',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_pinned' => 'boolean',
     ];
 
     /**

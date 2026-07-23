@@ -201,6 +201,9 @@
                     if (initialPrompt) newUrl.searchParams.delete('prompt');
                     window.history.pushState({}, '', newUrl);
 
+                    // Refresh Sidebar History
+                    window.dispatchEvent(new Event('refreshSidebarHistory'));
+
                     // Append Bot Message Bubble
                     const botMsg = data.data.bot_message;
                     appendMessageBubble('bot', botMsg.message, botMsg.id, data.data.model_used);
@@ -359,10 +362,29 @@
                     if (welcomeBanner) welcomeBanner.classList.add('hidden');
 
                     messages.forEach(msg => {
-                        appendMessageBubble(msg.sender_type, msg.message, msg.id);
+                        appendMessageBubble(msg.sender_type, msg.message, msg.id, null, msg.is_favorite);
                     });
 
-                    scrollToBottom();
+                    // Logika Auto-Scroll & Highlight pesan tertentu jika diminta di URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const highlightId = urlParams.get('highlight_message_id');
+                    if (highlightId) {
+                        setTimeout(() => {
+                            const targetEl = document.getElementById(`msg-${highlightId}`);
+                            if (targetEl) {
+                                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                // Tambahkan efek denyut warna Mustard / Amber untuk highlight premium
+                                targetEl.classList.add('ring-4', 'ring-amber-400', 'bg-amber-50/50', 'rounded-2xl', 'p-2', 'transition-all', 'duration-500');
+                                setTimeout(() => {
+                                    targetEl.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-50/50', 'p-2');
+                                }, 3000);
+                            } else {
+                                scrollToBottom();
+                            }
+                        }, 600);
+                    } else {
+                        scrollToBottom();
+                    }
                 }
             } catch (e) {
                 console.error('Failed to load session history', e);
@@ -370,9 +392,12 @@
         }
 
         // Function: Append Message Bubble
-        function appendMessageBubble(sender, text, msgId = null, modelUsed = null) {
+        function appendMessageBubble(sender, text, msgId = null, modelUsed = null, isFavorite = false) {
             const wrapper = document.createElement('div');
             wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in my-2`;
+            if (msgId) {
+                wrapper.id = `msg-${msgId}`;
+            }
 
             if (sender === 'user') {
                 wrapper.innerHTML = `
@@ -391,9 +416,17 @@
                             <div class="text-sm font-medium font-sans prose prose-slate">
                                 ${formattedText}
                             </div>
-                            <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-400 font-semibold">
-                                <span><i class="bi bi-robot text-terracotta mr-1"></i> Kakak AI Tutor</span>
-                                <span class="bg-slate-100 px-2 py-0.5 rounded-full">${modelUsed || 'AI Buddy'}</span>
+                            <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-400 font-semibold gap-4">
+                                <div class="flex items-center gap-2">
+                                    <span><i class="bi bi-robot text-terracotta mr-1"></i> Kakak AI Tutor</span>
+                                    <span class="bg-slate-100 px-2 py-0.5 rounded-full">${modelUsed || 'AI Buddy'}</span>
+                                </div>
+                                ${msgId ? `
+                                <button onclick="toggleFavoriteMessage(${msgId}, this)" class="flex items-center gap-1 px-2 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200/50 hover:border-amber-300 transition-all font-outfit" title="${isFavorite ? 'Hapus dari Favorit' : 'Simpan Jawaban Favorit'}">
+                                    <i class="bi ${isFavorite ? 'bi-star-fill text-amber-500' : 'bi-star'}"></i>
+                                    <span>Favorit</span>
+                                </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -402,6 +435,37 @@
 
             chatFeed.appendChild(wrapper);
         }
+
+        // Action: Toggle Favorite API
+        window.toggleFavoriteMessage = async function(messageId, btnElement) {
+            try {
+                const res = await fetch('/api/favorites/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ chat_message_id: messageId })
+                });
+
+                const result = await res.json();
+                if (res.ok && result.status === 'success') {
+                    const icon = btnElement.querySelector('i');
+                    if (result.is_favorite) {
+                        icon.className = 'bi bi-star-fill text-amber-500';
+                        btnElement.title = 'Hapus dari Favorit';
+                    } else {
+                        icon.className = 'bi bi-star';
+                        btnElement.title = 'Simpan Jawaban Favorit';
+                    }
+                } else {
+                    alert(result.message || 'Gagal mengubah favorit.');
+                }
+            } catch (e) {
+                alert('Gagal mengubah favorit karena masalah koneksi.');
+            }
+        };
 
         // Function: Append Typing Indicator
         function appendTypingIndicator() {

@@ -21,3 +21,7 @@ Route::get('/dashboard', function () {
 Route::get('/chat', function () {
     return view('chat');
 })->name('chat');
+
+Route::get('/favorites', function () {
+    return view('favorites');
+})->name('favorites');

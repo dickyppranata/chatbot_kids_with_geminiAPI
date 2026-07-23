@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('topic_id')->nullable()->constrained()->nullOnDelete();
             $table->string('title')->nullable();
+            $table->boolean('is_pinned')->default(false);
             $table->timestamps();
         });
     }

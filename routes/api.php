@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\TopicController;
+use App\Http\Controllers\Api\FavoriteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -41,5 +42,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/',                        [ChatController::class, 'send'])->name('send');
         Route::get('/history',                  [ChatController::class, 'history'])->name('history');
         Route::get('/history/{session_id}',     [ChatController::class, 'sessionMessages'])->name('session');
+        Route::put('/history/{session_id}',     [ChatController::class, 'renameSession'])->name('rename');
+        Route::delete('/history/{session_id}',  [ChatController::class, 'deleteSession'])->name('delete');
+        Route::post('/history/{session_id}/pin', [ChatController::class, 'togglePinSession'])->name('pin');
+    });
+
+    // --- Favorites ---
+    Route::prefix('favorites')->name('favorites.')->group(function () {
+        Route::get('/',         [FavoriteController::class, 'index'])->name('index');
+        Route::post('/toggle',  [FavoriteController::class, 'toggle'])->name('toggle');
     });
 });

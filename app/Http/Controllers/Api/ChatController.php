@@ -120,13 +120,15 @@ class ChatController extends Controller
     /**
      * GET /api/chat/history
      * Ambil daftar semua sesi chat milik user yang sedang login.
+     * Diurutkan berdasarkan status disematkan (is_pinned) terlebih dahulu, kemudian paling baru diperbarui.
      */
     public function history(Request $request): JsonResponse
     {
         $sessions = ChatSession::where('user_id', $request->user()->id)
             ->with('topic:id,name,slug')
             ->withCount('messages')
-            ->latest()
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('updated_at', 'desc')
             ->get();
 
         return response()->json([
@@ -143,7 +145,11 @@ class ChatController extends Controller
     {
         $session = ChatSession::where('id', $sessionId)
             ->where('user_id', $request->user()->id)
-            ->with(['topic:id,name,slug', 'messages' => fn ($q) => $q->orderBy('created_at')])
+            ->with(['topic:id,name,slug', 'messages' => function ($q) use ($request) {
+                $q->orderBy('created_at')->withExists(['favorites as is_favorite' => function ($query) use ($request) {
+                    $query->where('user_id', $request->user()->id);
+                }]);
+            }])
             ->firstOrFail();
 
         return response()->json([
@@ -153,10 +159,78 @@ class ChatController extends Controller
                     'id'         => $session->id,
                     'title'      => $session->title,
                     'topic'      => $session->topic,
+                    'is_pinned'  => $session->is_pinned,
                     'created_at' => $session->created_at,
                 ],
                 'messages' => $session->messages,
             ],
+        ]);
+    }
+
+    /**
+     * PUT /api/chat/history/{session_id}
+     * Ubah nama/judul sesi chat.
+     */
+    public function renameSession(Request $request, int $sessionId): JsonResponse
+    {
+        $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+        ], [
+            'title.required' => 'Judul chat tidak boleh kosong.',
+            'title.max'      => 'Judul chat maksimal 255 karakter.',
+        ]);
+
+        $session = ChatSession::where('id', $sessionId)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $session->update([
+            'title' => $request->title,
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Judul chat berhasil diubah.',
+            'data'    => $session,
+        ]);
+    }
+
+    /**
+     * DELETE /api/chat/history/{session_id}
+     * Hapus sesi chat beserta riwayat pesan di dalamnya.
+     */
+    public function deleteSession(Request $request, int $sessionId): JsonResponse
+    {
+        $session = ChatSession::where('id', $sessionId)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $session->delete();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Riwayat chat berhasil dihapus.',
+        ]);
+    }
+
+    /**
+     * POST /api/chat/history/{session_id}/pin
+     * Sematkan atau lepaskan sematan sesi chat ke paling atas.
+     */
+    public function togglePinSession(Request $request, int $sessionId): JsonResponse
+    {
+        $session = ChatSession::where('id', $sessionId)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $session->update([
+            'is_pinned' => !$session->is_pinned,
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => $session->is_pinned ? 'Chat berhasil disematkan di atas.' : 'Sematkan chat dilepas.',
+            'data'    => $session,
         ]);
     }
 }
