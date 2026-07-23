@@ -31,12 +31,26 @@
             </div>
         </div>
 
-        <!-- Topic Selector Pills (Dynamic from Eloquent ORM API) -->
+        <!-- Topic Selector Pills (Server-Side Data from $topics) -->
+        @php
+            $topicEmojis = [
+                'Matematika'        => '🍕',
+                'Sains / IPA'       => '🚀',
+                'Bahasa Indonesia'  => '📚',
+                'Pengetahuan Umum'  => '🌐',
+            ];
+        @endphp
         <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none" id="topicSelectorPills">
-            <button onclick="selectTopic(null)" class="topic-pill active px-3 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 bg-terracotta text-white border-terracotta" data-topic-id="all">
+            <button onclick="selectTopic(null)" class="topic-pill active px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 bg-terracotta text-white border-terracotta shadow-sm" data-topic-id="all">
                 💬 Umum
             </button>
-            <!-- Dynamically populated from /api/topics -->
+
+            @foreach($topics as $t)
+                @php $emoji = $topicEmojis[$t->name] ?? '📖'; @endphp
+                <button onclick="selectTopic({{ $t->id }})" class="topic-pill px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 bg-slate-100 text-slate-700 border-slate-200 hover:bg-amber-50" data-topic-id="{{ $t->id }}">
+                    {{ $emoji }} {{ $t->name }}
+                </button>
+            @endforeach
         </div>
     </div>
 
@@ -52,16 +66,22 @@
                 Halo, Adik Pintar!
             </h2>
             <p class="text-slate-600 text-sm leading-relaxed" id="welcomeDesc">
-                Aku adalah <b>Kakak AI Tutor</b> dari <b>AI Buddy</b>. Pilih topik di atas atau klik salah satu saran pertanyaan dari database di bawah ini:
+                Aku adalah <b>Kakak AI Tutor</b> dari <b>AI Buddy</b>. Pilih topik di atas atau klik salah satu saran pertanyaan di bawah ini:
             </p>
 
-            <!-- Sample Prompt Chips (Loaded from ExamplePrompts table via Eloquent) -->
+            <!-- Sample Prompt Chips -->
             <div class="pt-2">
                 <p class="text-xs font-bold text-terracotta uppercase tracking-wider mb-3 flex items-center justify-center gap-1.5">
                     <i class="bi bi-stars"></i> Saran Pertanyaan Topik (Database):
                 </p>
                 <div class="flex flex-wrap justify-center gap-2" id="samplePromptChips">
-                    <div class="text-slate-400 text-xs font-medium py-2">Memuat contoh pertanyaan...</div>
+                    @foreach($topics as $t)
+                        @foreach($t->examplePrompts->take(1) as $ep)
+                            <button onclick="sendPromptDirectly('{{ e($ep->question_text) }}')" class="px-3 py-2 rounded-full bg-white border border-slate-200/90 text-slate-800 text-xs font-bold shadow-sm hover:bg-amber-50 hover:border-amber-300 hover:text-terracotta transition-all text-left flex items-center gap-1.5">
+                                <span>💬 "{{ $ep->question_text }}"</span>
+                            </button>
+                        @endforeach
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -102,19 +122,14 @@
 
 </div>
 
-<!-- JavaScript Chat Controller -->
+<!-- JavaScript Chat Controller (Fullstack Session Auth) -->
 <script>
-    let allTopicsData = [];
+    // Inisialisasi data topik dari server-side Blade JSON
+    const allTopicsData = @json($topics);
     let activeTopicId = null;
     let activeSessionId = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            window.location.href = '/login';
-            return;
-        }
-
         const urlParams = new URLSearchParams(window.location.search);
         activeSessionId = urlParams.get('session_id') ? parseInt(urlParams.get('session_id')) : null;
         activeTopicId = urlParams.get('topic_id') ? parseInt(urlParams.get('topic_id')) : null;
@@ -130,8 +145,11 @@
         const chatErrorAlert = document.getElementById('chatErrorAlert');
         const chatErrorText = document.getElementById('chatErrorText');
 
-        // Load all topics via Eloquent ORM API first
-        loadTopicsFromDatabase();
+        // Apply topic selection visually if preset
+        if (activeTopicId) {
+            highlightTopicPill(activeTopicId);
+            renderExamplePrompts(activeTopicId);
+        }
 
         // Load session history if session_id is present
         if (activeSessionId) {
@@ -152,21 +170,17 @@
             const message = messageInput.value.trim();
             if (!message) return;
 
-            // Clear input & disable button
             messageInput.value = '';
             setLoading(true);
             hideError();
 
-            // Hide welcome banner if visible
             if (welcomeBanner) {
                 welcomeBanner.classList.add('hidden');
             }
 
-            // Append User Message Bubble
             appendMessageBubble('user', message);
             scrollToBottom();
 
-            // Append Typing Indicator Bubble
             const typingBubbleId = appendTypingIndicator();
             scrollToBottom();
 
@@ -178,33 +192,31 @@
                     payload.topic_id = activeTopicId;
                 }
 
-                const response = await fetch('/api/chat', {
+                // Call fullstack web route /chat/send with CSRF session auth
+                const response = await ajaxRequest('/chat/send', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
                     body: JSON.stringify(payload)
                 });
+
+                if (!response) {
+                    removeTypingIndicator(typingBubbleId);
+                    setLoading(false);
+                    return;
+                }
 
                 const data = await response.json();
                 removeTypingIndicator(typingBubbleId);
 
                 if (response.ok && data.status === 'success') {
-                    // Update activeSessionId
                     activeSessionId = data.data.session_id;
 
-                    // Update URL state without page reload
                     const newUrl = new URL(window.location.href);
                     newUrl.searchParams.set('session_id', activeSessionId);
                     if (initialPrompt) newUrl.searchParams.delete('prompt');
                     window.history.pushState({}, '', newUrl);
 
-                    // Refresh Sidebar History
                     window.dispatchEvent(new Event('refreshSidebarHistory'));
 
-                    // Append Bot Message Bubble
                     const botMsg = data.data.bot_message;
                     appendMessageBubble('bot', botMsg.message, botMsg.id, data.data.model_used);
                     scrollToBottom();
@@ -219,62 +231,24 @@
             }
         });
 
-        // Function: Load Topics & Example Prompts from Database via Eloquent API
-        async function loadTopicsFromDatabase() {
-            try {
-                const res = await fetch('/api/topics', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await res.json();
-                if (res.ok && data.status === 'success') {
-                    allTopicsData = data.data;
-                    renderTopicPills(allTopicsData);
-                    renderExamplePrompts(activeTopicId);
+        function highlightTopicPill(topicId) {
+            document.querySelectorAll('.topic-pill').forEach(btn => {
+                const tId = btn.getAttribute('data-topic-id');
+                if ((!topicId && tId === 'all') || (topicId && parseInt(tId) === topicId)) {
+                    btn.className = 'topic-pill px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 bg-terracotta text-white border-terracotta shadow-sm';
+                } else {
+                    btn.className = 'topic-pill px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 bg-slate-100 text-slate-700 border-slate-200 hover:bg-amber-50';
                 }
-            } catch (e) {
-                console.error('Failed to load topics', e);
-            }
-        }
-
-        // Render Topic Pills in Top Bar
-        function renderTopicPills(topics) {
-            const container = document.getElementById('topicSelectorPills');
-            const topicEmojis = {
-                'Matematika Dasar': '🍕',
-                'Sains': '🚀',
-                'Bahasa': '📚',
-                'Pengetahuan Umum': '🌐'
-            };
-
-            let html = `
-                <button onclick="selectTopic(null)" class="topic-pill px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 ${!activeTopicId ? 'bg-terracotta text-white border-terracotta shadow-sm' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-amber-50'}" data-topic-id="all">
-                    💬 Umum
-                </button>
-            `;
-
-            topics.forEach(t => {
-                const emoji = topicEmojis[t.name] || '📖';
-                const isSelected = activeTopicId === t.id;
-                html += `
-                    <button onclick="selectTopic(${t.id})" class="topic-pill px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 ${isSelected ? 'bg-terracotta text-white border-terracotta shadow-sm' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-amber-50'}" data-topic-id="${t.id}">
-                        ${emoji} ${t.name}
-                    </button>
-                `;
             });
-
-            container.innerHTML = html;
         }
 
-        // Render Example Prompts Chips in Banner based on Selected Topic
         function renderExamplePrompts(topicId) {
             const container = document.getElementById('samplePromptChips');
             const welcomeTitle = document.getElementById('welcomeTitle');
             const welcomeEmoji = document.getElementById('welcomeEmoji');
             const badge = document.getElementById('topicBadge');
+
+            if (!container) return;
 
             let promptsToDisplay = [];
             let currentTopic = null;
@@ -289,10 +263,9 @@
                 badge.textContent = currentTopic.name;
                 badge.classList.remove('hidden');
 
-                const topicEmojis = { 'Matematika Dasar': '🍕', 'Sains': '🚀', 'Bahasa': '📚', 'Pengetahuan Umum': '🌐' };
+                const topicEmojis = { 'Matematika': '🍕', 'Sains / IPA': '🚀', 'Bahasa Indonesia': '📚', 'Pengetahuan Umum': '🌐' };
                 welcomeEmoji.textContent = topicEmojis[currentTopic.name] || '📖';
             } else {
-                // Collect default prompts across all topics
                 allTopicsData.forEach(t => {
                     if (t.example_prompts && t.example_prompts.length > 0) {
                         promptsToDisplay.push(t.example_prompts[0].question_text);
@@ -320,13 +293,11 @@
             container.innerHTML = html;
         }
 
-        // Global Topic Selection Handler
         window.selectTopic = function(topicId) {
             activeTopicId = topicId;
-            renderTopicPills(allTopicsData);
+            highlightTopicPill(activeTopicId);
             renderExamplePrompts(activeTopicId);
 
-            // Update URL query
             const newUrl = new URL(window.location.href);
             if (topicId) {
                 newUrl.searchParams.set('topic_id', topicId);
@@ -336,15 +307,10 @@
             window.history.pushState({}, '', newUrl);
         };
 
-        // Function: Load Existing Session History
         async function loadSessionHistory(sessionId) {
             try {
-                const res = await fetch(`/api/chat/history/${sessionId}`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const res = await ajaxRequest(`/chat/history/${sessionId}`);
+                if (!res) return;
 
                 const data = await res.json();
                 if (res.ok && data.status === 'success') {
@@ -357,6 +323,7 @@
                         badge.textContent = session.topic.name;
                         badge.classList.remove('hidden');
                         activeTopicId = session.topic.id;
+                        highlightTopicPill(activeTopicId);
                     }
 
                     if (welcomeBanner) welcomeBanner.classList.add('hidden');
@@ -365,15 +332,12 @@
                         appendMessageBubble(msg.sender_type, msg.message, msg.id, null, msg.is_favorite);
                     });
 
-                    // Logika Auto-Scroll & Highlight pesan tertentu jika diminta di URL
-                    const urlParams = new URLSearchParams(window.location.search);
                     const highlightId = urlParams.get('highlight_message_id');
                     if (highlightId) {
                         setTimeout(() => {
                             const targetEl = document.getElementById(`msg-${highlightId}`);
                             if (targetEl) {
                                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                // Tambahkan efek denyut warna Mustard / Amber untuk highlight premium
                                 targetEl.classList.add('ring-4', 'ring-amber-400', 'bg-amber-50/50', 'rounded-2xl', 'p-2', 'transition-all', 'duration-500');
                                 setTimeout(() => {
                                     targetEl.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-50/50', 'p-2');
@@ -391,13 +355,10 @@
             }
         }
 
-        // Function: Append Message Bubble
         function appendMessageBubble(sender, text, msgId = null, modelUsed = null, isFavorite = false) {
             const wrapper = document.createElement('div');
             wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in my-2`;
-            if (msgId) {
-                wrapper.id = `msg-${msgId}`;
-            }
+            if (msgId) wrapper.id = `msg-${msgId}`;
 
             if (sender === 'user') {
                 wrapper.innerHTML = `
@@ -436,38 +397,33 @@
             chatFeed.appendChild(wrapper);
         }
 
-        // Action: Toggle Favorite API
         window.toggleFavoriteMessage = async function(messageId, btnElement) {
             try {
-                const res = await fetch('/api/favorites/toggle', {
+                const res = await ajaxRequest('/favorites/toggle', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
                     body: JSON.stringify({ chat_message_id: messageId })
                 });
 
-                const result = await res.json();
-                if (res.ok && result.status === 'success') {
-                    const icon = btnElement.querySelector('i');
-                    if (result.is_favorite) {
-                        icon.className = 'bi bi-star-fill text-amber-500';
-                        btnElement.title = 'Hapus dari Favorit';
+                if (res && res.ok) {
+                    const result = await res.json();
+                    if (result.status === 'success') {
+                        const icon = btnElement.querySelector('i');
+                        if (result.is_favorite) {
+                            icon.className = 'bi bi-star-fill text-amber-500';
+                            btnElement.title = 'Hapus dari Favorit';
+                        } else {
+                            icon.className = 'bi bi-star';
+                            btnElement.title = 'Simpan Jawaban Favorit';
+                        }
                     } else {
-                        icon.className = 'bi bi-star';
-                        btnElement.title = 'Simpan Jawaban Favorit';
+                        alert(result.message || 'Gagal mengubah favorit.');
                     }
-                } else {
-                    alert(result.message || 'Gagal mengubah favorit.');
                 }
             } catch (e) {
                 alert('Gagal mengubah favorit karena masalah koneksi.');
             }
         };
 
-        // Function: Append Typing Indicator
         function appendTypingIndicator() {
             const id = 'typing_' + Date.now();
             const wrapper = document.createElement('div');
@@ -524,6 +480,7 @@
         }
 
         function escapeHtml(str) {
+            if (!str) return '';
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
@@ -534,7 +491,6 @@
             return formatted;
         }
 
-        // Global helper for prompt chips
         window.sendPromptDirectly = function(promptText) {
             messageInput.value = promptText;
             chatForm.dispatchEvent(new Event('submit'));

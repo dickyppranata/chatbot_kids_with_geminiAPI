@@ -78,21 +78,25 @@
                     </p>
                 </div>
 
-                <!-- Form -->
-                <form id="loginForm" class="px-8 pb-8 pt-6 space-y-5">
-                    <meta name="csrf-token" content="{{ csrf_token() }}">
+                <!-- Form (Standard Laravel POST) -->
+                <form action="/login" method="POST" class="px-8 pb-8 pt-6 space-y-5">
+                    @csrf
 
-                    <!-- Global Error Alert -->
-                    <div id="globalError" class="hidden px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2">
-                        <i class="bi bi-exclamation-triangle-fill text-red-500"></i>
-                        <span id="globalErrorText"></span>
-                    </div>
+                    <!-- Global Error Alert (from server validation) -->
+                    @if($errors->any())
+                        <div class="px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2">
+                            <i class="bi bi-exclamation-triangle-fill text-red-500"></i>
+                            <span>{{ $errors->first() }}</span>
+                        </div>
+                    @endif
 
-                    <!-- Success Alert -->
-                    <div id="successAlert" class="hidden px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium flex items-center gap-2">
-                        <i class="bi bi-check-circle-fill text-emerald-500"></i>
-                        <span id="successText"></span>
-                    </div>
+                    <!-- Success Alert (from session flash) -->
+                    @if(session('success'))
+                        <div class="px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium flex items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-emerald-500"></i>
+                            <span>{{ session('success') }}</span>
+                        </div>
+                    @endif
 
                     <!-- Email Input -->
                     <div class="space-y-2">
@@ -107,10 +111,13 @@
                                 required
                                 autocomplete="email"
                                 placeholder="contoh@email.com"
-                                class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-terracotta transition-colors"
+                                value="{{ old('email') }}"
+                                class="w-full px-4 py-3.5 bg-slate-50 border {{ $errors->has('email') ? 'border-red-400' : 'border-slate-200' }} rounded-2xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-terracotta transition-colors"
                             >
                         </div>
-                        <p id="emailError" class="hidden text-xs text-red-500 font-medium mt-1 pl-1"></p>
+                        @error('email')
+                            <p class="text-xs text-red-500 font-medium mt-1 pl-1">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <!-- Password Input -->
@@ -126,7 +133,7 @@
                                 required
                                 autocomplete="current-password"
                                 placeholder="Masukkan password"
-                                class="w-full px-4 py-3.5 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-terracotta transition-colors"
+                                class="w-full px-4 py-3.5 pr-12 bg-slate-50 border {{ $errors->has('password') ? 'border-red-400' : 'border-slate-200' }} rounded-2xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-terracotta transition-colors"
                             >
                             <button
                                 type="button"
@@ -137,21 +144,24 @@
                                 <i class="bi bi-eye-fill" id="eyeIcon"></i>
                             </button>
                         </div>
-                        <p id="passwordError" class="hidden text-xs text-red-500 font-medium mt-1 pl-1"></p>
+                        @error('password')
+                            <p class="text-xs text-red-500 font-medium mt-1 pl-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Remember Me -->
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" name="remember" id="remember" class="w-4 h-4 text-terracotta border-slate-300 rounded focus:ring-terracotta">
+                        <label for="remember" class="text-sm text-slate-600 font-medium cursor-pointer">Ingat saya</label>
                     </div>
 
                     <!-- Submit Button -->
                     <button
                         type="submit"
-                        id="submitBtn"
-                        class="w-full py-3.5 rounded-full bg-gradient-to-r from-terracotta to-orange-600 hover:from-terracotta-hover hover:to-orange-700 text-white font-outfit font-extrabold text-base shadow-lg shadow-terracotta/25 hover:shadow-xl hover:shadow-terracotta/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        class="w-full py-3.5 rounded-full bg-gradient-to-r from-terracotta to-orange-600 hover:from-terracotta-hover hover:to-orange-700 text-white font-outfit font-extrabold text-base shadow-lg shadow-terracotta/25 hover:shadow-xl hover:shadow-terracotta/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
                     >
-                        <span id="btnText">Masuk Sekarang</span>
-                        <i class="bi bi-arrow-right-short text-xl" id="btnIcon"></i>
-                        <svg id="btnSpinner" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <span>Masuk Sekarang</span>
+                        <i class="bi bi-arrow-right-short text-xl"></i>
                     </button>
                 </form>
 
@@ -184,121 +194,19 @@
     </main>
 
     <script>
-        // Auto-redirect if already logged in
-        if (localStorage.getItem('access_token')) {
-            window.location.href = '/dashboard';
-        }
-
         // Force Light Mode
         document.documentElement.classList.remove('dark');
-        localStorage.removeItem('theme');
 
         // Password Toggle
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         const eyeIcon = document.getElementById('eyeIcon');
 
-        togglePassword.addEventListener('click', () => {
+        togglePassword?.addEventListener('click', () => {
             const isPassword = passwordInput.type === 'password';
             passwordInput.type = isPassword ? 'text' : 'password';
             eyeIcon.className = isPassword ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill';
         });
-
-        // Clear field error on input
-        document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', () => {
-                const errorEl = document.getElementById(input.id + 'Error');
-                if (errorEl) {
-                    errorEl.classList.add('hidden');
-                    errorEl.textContent = '';
-                }
-                document.getElementById('globalError').classList.add('hidden');
-            });
-        });
-
-        // Form Submit
-        const loginForm = document.getElementById('loginForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const btnText = document.getElementById('btnText');
-        const btnIcon = document.getElementById('btnIcon');
-        const btnSpinner = document.getElementById('btnSpinner');
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            // Reset errors
-            document.querySelectorAll('[id$="Error"]').forEach(el => {
-                el.classList.add('hidden');
-                el.textContent = '';
-            });
-            document.getElementById('globalError').classList.add('hidden');
-            document.getElementById('successAlert').classList.add('hidden');
-
-            // Disable button and show spinner
-            submitBtn.disabled = true;
-            btnText.textContent = 'Memproses...';
-            btnIcon.classList.add('hidden');
-            btnSpinner.classList.remove('hidden');
-
-            const formData = {
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
-            };
-
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify(formData),
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.status === 'success') {
-                    // Store token
-                    localStorage.setItem('access_token', data.data.access_token);
-                    localStorage.setItem('user', JSON.stringify(data.data.user));
-
-                    // Show success
-                    document.getElementById('successAlert').classList.remove('hidden');
-                    document.getElementById('successText').textContent = 'Login berhasil! Mengalihkan...';
-
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1200);
-                } else if (response.status === 422 && data.errors) {
-                    // Validation errors
-                    for (const [field, messages] of Object.entries(data.errors)) {
-                        const errorEl = document.getElementById(field + 'Error');
-                        if (errorEl) {
-                            errorEl.textContent = messages[0];
-                            errorEl.classList.remove('hidden');
-                        }
-                    }
-                    resetButton();
-                } else {
-                    // General error
-                    document.getElementById('globalError').classList.remove('hidden');
-                    document.getElementById('globalErrorText').textContent = data.message || 'Email atau password salah.';
-                    resetButton();
-                }
-            } catch (error) {
-                document.getElementById('globalError').classList.remove('hidden');
-                document.getElementById('globalErrorText').textContent = 'Terjadi kesalahan jaringan. Silakan coba lagi.';
-                resetButton();
-            }
-        });
-
-        function resetButton() {
-            submitBtn.disabled = false;
-            btnText.textContent = 'Masuk Sekarang';
-            btnIcon.classList.remove('hidden');
-            btnSpinner.classList.add('hidden');
-        }
     </script>
 </body>
 </html>

@@ -9,7 +9,7 @@
 
         <div>
             <h2 class="font-outfit font-extrabold text-lg md:text-xl text-slate-900 flex items-center gap-2">
-                <span>Halo, <span id="headerGreetingName" class="text-terracotta">Teman!</span> 👋</span>
+                <span>Halo, <span class="text-terracotta">{{ Auth::user()->name ?? 'Teman' }}</span> 👋</span>
             </h2>
             <p class="text-xs text-slate-500 font-medium hidden sm:block">
                 Mari eksplorasi ilmu baru bersama Kakak AI hari ini!

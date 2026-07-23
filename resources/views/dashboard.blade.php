@@ -17,7 +17,7 @@
                     ✨ Sahabat Belajar Pintar
                 </span>
                 <h1 class="font-outfit font-extrabold text-2xl md:text-4xl leading-tight">
-                    Selamat Datang di <span class="underline decoration-amber-300 decoration-wavy underline-offset-4">AI Buddy!</span>
+                    Selamat Datang, <span class="underline decoration-amber-300 decoration-wavy underline-offset-4">{{ Auth::user()->name }}!</span>
                 </h1>
                 <p class="text-xs md:text-sm text-amber-50 font-medium leading-relaxed max-w-xl">
                     Tanyakan apa saja seputar Matematika, Sains, Bahasa, atau Pengetahuan Umum. Kakak AI siap menjelaskan dengan contoh yang seru dan mudah dipahami!
@@ -43,12 +43,17 @@
         </div>
     </div>
 
-    <!-- 2. Stat Cards Grid (Modular Partial Component) -->
+    <!-- 2. Stat Cards Grid (Server-Side Data from $stats) -->
+    @php
+        $chatBadge = 'Penjelajah Muda 🧒';
+        if ($stats['total_chats'] >= 10) $chatBadge = 'Cendekia Muda 🎓';
+        elseif ($stats['total_chats'] >= 5) $chatBadge = 'Siswa Aktif 🌟';
+    @endphp
+
     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         @include('partials.stat-card', [
-            'id' => 'statTotalChats',
             'title' => 'Total Percakapan',
-            'value' => '0',
+            'value' => $stats['total_chats'] . ' Sesi',
             'icon' => 'bi-chat-dots-fill',
             'gradient' => 'from-terracotta to-orange-500',
             'badge' => 'Sesi Aktif'
@@ -56,7 +61,7 @@
 
         @include('partials.stat-card', [
             'title' => 'Topik Pelajaran',
-            'value' => '4 Topik',
+            'value' => $stats['total_topics'] . ' Topik',
             'icon' => 'bi-journal-bookmark-fill',
             'gradient' => 'from-amber-500 to-yellow-400',
             'badge' => 'SD / SMP'
@@ -64,7 +69,7 @@
 
         @include('partials.stat-card', [
             'title' => 'Jawaban Disimpan',
-            'value' => '0 Favorit',
+            'value' => $stats['total_favorites'] . ' Favorit',
             'icon' => 'bi-star-fill',
             'gradient' => 'from-cyan-500 to-blue-500',
             'badge' => 'Catatan Penting'
@@ -72,14 +77,23 @@
 
         @include('partials.stat-card', [
             'title' => 'Lencana Belajar',
-            'value' => 'Penjelajah Muda',
+            'value' => $chatBadge,
             'icon' => 'bi-award-fill',
             'gradient' => 'from-emerald-500 to-teal-400',
-            'badge' => 'Level 1'
+            'badge' => $stats['total_chats'] >= 10 ? 'Level 3' : ($stats['total_chats'] >= 5 ? 'Level 2' : 'Level 1')
         ])
     </div>
 
-    <!-- 3. Topic Navigation Cards Section -->
+    <!-- 3. Topic Navigation Cards (Server-Side Rendered from $topics) -->
+    @php
+        $topicMeta = [
+            'matematika'        => ['emoji' => '🍕', 'accent' => 'from-orange-500 to-amber-500', 'badge' => 'bg-amber-100 text-amber-700'],
+            'sains-ipa'         => ['emoji' => '🚀', 'accent' => 'from-cyan-500 to-blue-500', 'badge' => 'bg-cyan-100 text-cyan-700'],
+            'bahasa-indonesia'  => ['emoji' => '📚', 'accent' => 'from-emerald-500 to-teal-400', 'badge' => 'bg-emerald-100 text-emerald-700'],
+            'pengetahuan-umum'  => ['emoji' => '🌐', 'accent' => 'from-violet-500 to-purple-500', 'badge' => 'bg-violet-100 text-violet-700'],
+        ];
+    @endphp
+
     <section id="topics" class="space-y-4 pt-2">
         <div class="flex items-center justify-between">
             <div>
@@ -94,72 +108,70 @@
         </div>
 
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Topic 1: Matematika Dasar -->
-            @include('partials.topic-card', [
-                'topicId' => 1,
-                'title' => 'Matematika Dasar',
-                'emoji' => '🍕',
-                'description' => 'Pecahan, perkalian, bangun ruang, dan logika angka dengan contoh analogi sederhana.',
-                'accent' => 'from-orange-500 to-amber-500',
-                'badgeColor' => 'bg-amber-100 text-amber-700',
-                'prompts' => [
-                    'Apa itu pecahan 1/4?',
-                    'Bagaimana cara menghitung luas persegi?'
-                ]
-            ])
+            @foreach($topics as $topic)
+                @php
+                    $meta = $topicMeta[$topic->slug] ?? ['emoji' => '📖', 'accent' => 'from-slate-500 to-slate-400', 'badge' => 'bg-slate-100 text-slate-700'];
+                @endphp
+                <div class="group relative bg-white/80 backdrop-blur-md border border-slate-200/60 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-terracotta/5 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden">
+                    <!-- Top Accent Bar -->
+                    <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r {{ $meta['accent'] }} rounded-t-3xl"></div>
 
-            <!-- Topic 2: Sains & Alam -->
-            @include('partials.topic-card', [
-                'topicId' => 2,
-                'title' => 'Sains & Alam',
-                'emoji' => '🚀',
-                'description' => 'Menjelaskan fenomena alam seperti proses hujan, fotosintesis, tata surya, dan energi.',
-                'accent' => 'from-cyan-500 to-blue-500',
-                'badgeColor' => 'bg-cyan-100 text-cyan-700',
-                'prompts' => [
-                    'Mengapa air hujan rasanya tawar?',
-                    'Bagaimana cara tanaman makan?'
-                ]
-            ])
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-3xl shadow-inner group-hover:scale-110 transition-transform">
+                                <span>{{ $meta['emoji'] }}</span>
+                            </div>
+                            <span class="text-xs font-outfit font-bold px-3 py-1 rounded-full {{ $meta['badge'] }}">
+                                SD / SMP
+                            </span>
+                        </div>
 
-            <!-- Topic 3: Bahasa Indonesia -->
-            @include('partials.topic-card', [
-                'topicId' => 3,
-                'title' => 'Bahasa Indonesia',
-                'emoji' => '📚',
-                'description' => 'Kosakata baru, sinonim & antonim, tata bahasa, dan tips membuat karangan cerita seru.',
-                'accent' => 'from-emerald-500 to-teal-400',
-                'badgeColor' => 'bg-emerald-100 text-emerald-700',
-                'prompts' => [
-                    'Apa bedanya sinonim dan antonim?',
-                    'Bantu aku buat puisi tentang alam'
-                ]
-            ])
+                        <h3 class="font-outfit font-extrabold text-xl text-slate-900 mb-2 group-hover:text-terracotta transition-colors">
+                            {{ $topic->name }}
+                        </h3>
+                        <p class="text-xs md:text-sm text-slate-600 leading-relaxed font-medium mb-4">
+                            {{ $topic->description ?? 'Materi pelajaran menarik.' }}
+                        </p>
 
-            <!-- Topic 4: Pengetahuan Umum -->
-            @include('partials.topic-card', [
-                'topicId' => 4,
-                'title' => 'Pengetahuan Umum',
-                'emoji' => '🌐',
-                'description' => 'Fakta unik dunia, sejarah tokoh inspiratif, peta geografi, dan kebudayaan nusantara.',
-                'accent' => 'from-violet-500 to-purple-500',
-                'badgeColor' => 'bg-violet-100 text-violet-700',
-                'prompts' => [
-                    'Siapa penemu lampu bohlam?',
-                    'Berapa jumlah provinsi di Indonesia?'
-                ]
-            ])
+                        <!-- Sample Questions Chips -->
+                        @if($topic->examplePrompts->count() > 0)
+                            <div class="space-y-1.5 mb-6">
+                                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Contoh Pertanyaan:</p>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach($topic->examplePrompts->take(2) as $ep)
+                                        <a
+                                            href="/chat?topic_id={{ $topic->id }}&prompt={{ urlencode($ep->question_text) }}"
+                                            class="text-left text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100/90 text-slate-700 border border-slate-200/60 hover:bg-terracotta/10 hover:border-terracotta/40 hover:text-terracotta transition-all truncate max-w-full no-underline"
+                                        >
+                                            💬 "{{ Str::limit($ep->question_text, 40) }}"
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Action Button -->
+                    <a
+                        href="/chat?topic_id={{ $topic->id }}"
+                        class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-terracotta hover:text-white text-slate-700 font-outfit font-bold text-xs shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 no-underline"
+                    >
+                        <span>Mulai Belajar Topik Ini</span>
+                        <i class="bi bi-arrow-right-short text-lg"></i>
+                    </a>
+                </div>
+            @endforeach
         </div>
     </section>
 
-    <!-- 4. Bottom Grid: Recent Chats & Quick Quiz Prompts -->
+    <!-- 4. Bottom Grid: Recent Chats & Quick Prompts -->
     <div class="grid lg:grid-cols-3 gap-6 pt-2">
-        <!-- Recent Chats Partial (2 Cols) -->
+        <!-- Recent Chats (2 Cols) -->
         <div class="lg:col-span-2">
             @include('partials.recent-chats')
         </div>
 
-        <!-- Quick Prompts Card (1 Col) -->
+        <!-- Quick Prompts Card -->
         <div class="bg-gradient-to-br from-amber-500/10 via-terracotta/5 to-transparent border border-amber-200/60 rounded-3xl p-6 flex flex-col justify-between">
             <div class="space-y-4">
                 <div class="flex items-center gap-2.5">
@@ -175,20 +187,20 @@
                 </div>
 
                 <div class="space-y-2">
-                    <button onclick="startChatWithPrompt('Mengapa langit berwarna biru saat siang hari?')" class="w-full text-left p-3 rounded-2xl bg-white/90 border border-slate-200/60 text-xs font-semibold text-slate-800 hover:border-terracotta hover:text-terracotta transition-all flex items-center justify-between group shadow-sm">
+                    <a href="/chat?prompt={{ urlencode('Mengapa langit berwarna biru saat siang hari?') }}" class="w-full text-left p-3 rounded-2xl bg-white/90 border border-slate-200/60 text-xs font-semibold text-slate-800 hover:border-terracotta hover:text-terracotta transition-all flex items-center justify-between group shadow-sm no-underline">
                         <span>🌈 Mengapa langit berwarna biru?</span>
                         <i class="bi bi-chevron-right text-slate-400 group-hover:translate-x-1 transition-transform"></i>
-                    </button>
+                    </a>
 
-                    <button onclick="startChatWithPrompt('Bagaimana cara kerja magnet menempel pada besi?')" class="w-full text-left p-3 rounded-2xl bg-white/90 border border-slate-200/60 text-xs font-semibold text-slate-800 hover:border-terracotta hover:text-terracotta transition-all flex items-center justify-between group shadow-sm">
+                    <a href="/chat?prompt={{ urlencode('Bagaimana cara kerja magnet menempel pada besi?') }}" class="w-full text-left p-3 rounded-2xl bg-white/90 border border-slate-200/60 text-xs font-semibold text-slate-800 hover:border-terracotta hover:text-terracotta transition-all flex items-center justify-between group shadow-sm no-underline">
                         <span>🧲 Bagaimana cara kerja magnet?</span>
                         <i class="bi bi-chevron-right text-slate-400 group-hover:translate-x-1 transition-transform"></i>
-                    </button>
+                    </a>
 
-                    <button onclick="startChatWithPrompt('Bisa tolong beri latihan soal perkalian 7 dan 8?')" class="w-full text-left p-3 rounded-2xl bg-white/90 border border-slate-200/60 text-xs font-semibold text-slate-800 hover:border-terracotta hover:text-terracotta transition-all flex items-center justify-between group shadow-sm">
+                    <a href="/chat?prompt={{ urlencode('Bisa tolong beri latihan soal perkalian 7 dan 8?') }}" class="w-full text-left p-3 rounded-2xl bg-white/90 border border-slate-200/60 text-xs font-semibold text-slate-800 hover:border-terracotta hover:text-terracotta transition-all flex items-center justify-between group shadow-sm no-underline">
                         <span>✏️ Latihan soal perkalian 7 & 8</span>
                         <i class="bi bi-chevron-right text-slate-400 group-hover:translate-x-1 transition-transform"></i>
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -201,10 +213,4 @@
     </div>
 
 </div>
-
-<script>
-    function startChatWithPrompt(promptText) {
-        window.location.href = `/chat?prompt=${encodeURIComponent(promptText)}`;
-    }
-</script>
 @endsection

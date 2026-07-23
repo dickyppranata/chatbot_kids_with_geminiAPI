@@ -1,55 +1,13 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ChatController;
-use App\Http\Controllers\Api\TopicController;
-use App\Http\Controllers\Api\FavoriteController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes - Chatbot Edukasi Anak SD
+| API Routes (Tidak digunakan — sistem fullstack via web.php)
 |--------------------------------------------------------------------------
 |
-| Semua route di bawah ini di-prefix dengan /api secara otomatis oleh Laravel.
+| File ini dikosongkan karena seluruh endpoint telah dipindahkan ke
+| routes/web.php menggunakan session-based authentication.
 |
 */
-
-// =========================================================================
-// AUTHENTICATION (Public - Tidak perlu login)
-// =========================================================================
-Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
-    Route::post('/login',    [AuthController::class, 'login'])->name('auth.login');
-});
-
-// =========================================================================
-// PROTECTED ROUTES (Memerlukan token Sanctum)
-// =========================================================================
-Route::middleware('auth:sanctum')->group(function () {
-
-    // --- Auth ---
-    Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
-    Route::get('/auth/me',      [AuthController::class, 'me'])->name('auth.me');
-
-    // --- Topics ---
-    Route::get('/topics',       [TopicController::class, 'index'])->name('topics.index');
-
-    // -------------------------------------------------------------------------
-    // CHAT AI (Untuk user 'anak')
-    // -------------------------------------------------------------------------
-    Route::prefix('chat')->name('chat.')->group(function () {
-        Route::post('/',                        [ChatController::class, 'send'])->name('send');
-        Route::get('/history',                  [ChatController::class, 'history'])->name('history');
-        Route::get('/history/{session_id}',     [ChatController::class, 'sessionMessages'])->name('session');
-        Route::put('/history/{session_id}',     [ChatController::class, 'renameSession'])->name('rename');
-        Route::delete('/history/{session_id}',  [ChatController::class, 'deleteSession'])->name('delete');
-        Route::post('/history/{session_id}/pin', [ChatController::class, 'togglePinSession'])->name('pin');
-    });
-
-    // --- Favorites ---
-    Route::prefix('favorites')->name('favorites.')->group(function () {
-        Route::get('/',         [FavoriteController::class, 'index'])->name('index');
-        Route::post('/toggle',  [FavoriteController::class, 'toggle'])->name('toggle');
-    });
-});

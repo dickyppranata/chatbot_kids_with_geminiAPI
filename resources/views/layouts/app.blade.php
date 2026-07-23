@@ -51,9 +51,9 @@
         </div>
     </div>
 
-    <!-- Global App JavaScript -->
+    <!-- Global App JavaScript (Fullstack - Session Auth) -->
     <script>
-        // Force Light Theme (Remove Dark Theme)
+        // Force Light Theme
         document.documentElement.classList.remove('dark');
         localStorage.removeItem('theme');
 
@@ -70,62 +70,49 @@
         mobileToggle?.addEventListener('click', toggleSidebar);
         backdrop?.addEventListener('click', toggleSidebar);
 
-        // User Authentication Sync
-        async function fetchUserProfile() {
-            const token = localStorage.getItem('access_token');
-            if (!token) return;
-
-            try {
-                const response = await fetch('/api/auth/me', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json'
-                    }
-                });
-                const result = await response.json();
-
-                if (response.ok && result.status === 'success') {
-                    const user = result.data;
-                    localStorage.setItem('user', JSON.stringify(user));
-
-                    // Update UI elements if present
-                    const nameEl = document.getElementById('sidebarUserName');
-                    const headerGreeting = document.getElementById('headerGreetingName');
-                    const userRoleEl = document.getElementById('sidebarUserRole');
-
-                    if (nameEl) nameEl.textContent = user.name;
-                    if (headerGreeting) headerGreeting.textContent = user.name;
-                    if (userRoleEl) userRoleEl.textContent = user.role || 'anak';
-                }
-            } catch (e) {
-                console.error('Failed to fetch user profile:', e);
-            }
-        }
-        document.addEventListener('DOMContentLoaded', fetchUserProfile);
-
-        // Logout Handler
-        document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-            const token = localStorage.getItem('access_token');
-            if (token) {
-                try {
-                    await fetch('/api/auth/logout', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Accept': 'application/json'
-                        }
-                    });
-                } catch (e) {}
-            }
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+        // Logout Handler (Form POST with CSRF)
+        document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('logoutForm')?.submit();
         });
 
         // Global Helper to Start Chat with Prompt
         function startChatWithPrompt(promptText) {
             sessionStorage.setItem('pending_prompt', promptText);
             window.location.href = '/chat';
+        }
+
+        /**
+         * AJAX Helper — mengirim request dengan CSRF token (session-based auth).
+         * Menggantikan pola Bearer token + localStorage.
+         */
+        async function ajaxRequest(url, options = {}) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            const defaultHeaders = {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            };
+
+            if (!(options.body instanceof FormData)) {
+                defaultHeaders['Content-Type'] = 'application/json';
+            }
+
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                ...options,
+                headers: {
+                    ...defaultHeaders,
+                    ...(options.headers || {}),
+                },
+            });
+
+            // Jika 401/419, redirect ke login
+            if (response.status === 401 || response.status === 419) {
+                window.location.href = '/login';
+                return null;
+            }
+
+            return response;
         }
     </script>
     @stack('scripts')

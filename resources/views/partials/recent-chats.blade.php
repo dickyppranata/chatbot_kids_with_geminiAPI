@@ -12,7 +12,7 @@
                 <p class="text-xs text-slate-500 font-medium">Lanjutkan percakapan yang belum selesai</p>
             </div>
         </div>
-        <a href="/history" class="text-xs font-outfit font-bold text-terracotta hover:underline flex items-center gap-1">
+        <a href="/chat" class="text-xs font-outfit font-bold text-terracotta hover:underline flex items-center gap-1 no-underline">
             <span>Lihat Semua</span>
             <i class="bi bi-chevron-right text-[10px]"></i>
         </a>
@@ -20,7 +20,6 @@
 
     <!-- Dynamic Container for Recent Sessions -->
     <div id="recentSessionsContainer" class="space-y-2.5">
-        <!-- Loading State -->
         <div class="p-4 text-center text-xs text-slate-400 font-medium animate-pulse">
             <i class="bi bi-arrow-repeat animate-spin text-base mr-2 inline-block"></i> Memuat riwayat percakapan...
         </div>
@@ -30,30 +29,17 @@
 <script>
     async function loadRecentChats() {
         const container = document.getElementById('recentSessionsContainer');
-        const token = localStorage.getItem('access_token');
-
-        if (!token) {
-            container.innerHTML = `
-                <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-center text-xs text-amber-700 font-medium">
-                    Silakan <a href="/login" class="font-bold underline">Login</a> terlebih dahulu untuk melihat riwayat percakapanmu.
-                </div>
-            `;
-            return;
-        }
+        if (!container) return;
 
         try {
-            const response = await fetch('/api/chat/history', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
-            });
+            const response = await ajaxRequest('/chat/history');
+            if (!response) return;
 
             const result = await response.json();
 
             if (response.ok && result.status === 'success' && result.data.length > 0) {
-                const recentFive = result.data.slice(0, 4); // Take latest 4
-                container.innerHTML = recentFive.map(session => `
+                const recentFour = result.data.slice(0, 4);
+                container.innerHTML = recentFour.map(session => `
                     <a href="/chat?session_id=${session.id}" class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/50 hover:bg-slate-100 hover:border-terracotta/30 transition-all group no-underline">
                         <div class="flex items-center gap-3 min-w-0">
                             <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-sm shrink-0">
@@ -61,7 +47,7 @@
                             </div>
                             <div class="min-w-0">
                                 <p class="font-outfit font-bold text-xs text-slate-900 group-hover:text-terracotta transition-colors truncate">
-                                    ${session.title || 'Percakapan Tanpa Judul'}
+                                    ${escapeHtml(session.title || 'Percakapan Tanpa Judul')}
                                 </p>
                                 <span class="text-[10px] text-slate-400 font-semibold flex items-center gap-2 mt-0.5">
                                     <span>${session.messages_count || 0} pesan</span>
@@ -73,10 +59,6 @@
                         <i class="bi bi-arrow-right text-slate-400 group-hover:text-terracotta group-hover:translate-x-1 transition-all text-sm"></i>
                     </a>
                 `).join('');
-
-                // Also update total chats count badge if element exists
-                const totalChatEl = document.getElementById('statTotalChats');
-                if (totalChatEl) totalChatEl.textContent = result.data.length;
             } else {
                 container.innerHTML = `
                     <div class="p-6 text-center text-xs text-slate-400 font-medium">
@@ -93,6 +75,11 @@
                     Tidak dapat memuat riwayat.
                 </div>
             `;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
     }
 

@@ -1,5 +1,6 @@
 <!-- Stat Card Component (Partials) -->
 @props([
+    'id' => '',
     'title' => 'Statistik',
     'value' => '0',
     'icon' => 'bi-bar-chart',
@@ -13,7 +14,7 @@
     </div>
     <div class="flex-1 min-w-0">
         <p class="text-xs font-outfit font-bold text-slate-400 uppercase tracking-wider truncate">{{ $title }}</p>
-        <h3 class="font-outfit font-extrabold text-2xl text-slate-900 leading-tight mt-0.5" id="{{ $attributes->get('id') ?? '' }}">
+        <h3 class="font-outfit font-extrabold text-2xl text-slate-900 leading-tight mt-0.5" id="{{ $id }}">
             {{ $value }}
         </h3>
         @if($badge)

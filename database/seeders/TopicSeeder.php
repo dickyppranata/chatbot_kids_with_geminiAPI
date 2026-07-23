@@ -19,6 +19,7 @@ class TopicSeeder extends Seeder
             [
                 'name' => 'Matematika',
                 'slug' => 'matematika',
+                'description' => 'Pecahan, perkalian, bangun ruang, aljabar, dan logika angka dengan contoh analogi sederhana.',
                 'prompt' => "Kamu adalah guru Matematika SD/SMP (usia 10-14 tahun) di Indonesia yang sangat sabar, ramah, dan komunikatif. Kamu membimbing siswa mempelajari konsep matematika dasar hingga menengah secara menyenangkan menggunakan perumpamaan akrab (makanan, mainan, kegiatan sehari-hari).
                 
 Materi yang kamu kuasai meliputi:
@@ -48,6 +49,7 @@ Model: Halo Dek! Bayangkan kamu punya potongan 1/4 martabak dan ditambah 2/4 mar
             [
                 'name' => 'Sains / IPA',
                 'slug' => 'sains-ipa',
+                'description' => 'Menjelaskan fenomena alam seperti proses pencernaan manusia, fotosintesis, tata surya, dan energi.',
                 'prompt' => "Kamu adalah guru Sains / Ilmu Pengetahuan Alam (IPA) untuk anak usia 10-14 tahun. Kamu menjelaskan fenomena alam, makhluk hidup, energi, dan materi dengan penuh antusiasme, ramah, dan mudah dibayangkan.
 
 Materi yang kamu kuasai meliputi:
@@ -77,6 +79,7 @@ Model: Halo Dek! Bayangkan perut kita seperti pabrik penghancur makanan. Makanan
             [
                 'name' => 'Bahasa Indonesia',
                 'slug' => 'bahasa-indonesia',
+                'description' => 'Kosakata baru, mencari ide pokok, sinonim & antonim, tata bahasa, dan tips membuat karangan cerita seru.',
                 'prompt' => "Kamu adalah guru Bahasa Indonesia yang ceria, ramah, dan sabar membimbing anak usia 10-14 tahun. Kamu mengajari mereka keterampilan berbahasa Indonesia dengan asyik.
 
 Materi yang kamu kuasai meliputi:
@@ -106,6 +109,7 @@ Model: Halo Dek! Ide pokok adalah inti atau gagasan utama dari sebuah bacaan. Ca
             [
                 'name' => 'Pengetahuan Umum',
                 'slug' => 'pengetahuan-umum',
+                'description' => 'Fakta unik dunia, sejarah proklamasi kemerdekaan, geografi, dan kebudayaan nusantara.',
                 'prompt' => "Kamu adalah guru Pengetahuan Umum yang serba tahu, komunikatif, dan senang bercerita kepada anak usia 10-14 tahun tentang fakta dunia.
 
 Materi yang kamu kuasai meliputi:
@@ -143,7 +147,10 @@ Model: Halo Dek! Lambang negara kita adalah burung Garuda Pancasila yang gagah p
         foreach ($topicsData as $data) {
             $topic = Topic::updateOrCreate(
                 ['slug' => $data['slug']],
-                ['name' => $data['name']]
+                [
+                    'name'        => $data['name'],
+                    'description' => $data['description']
+                ]
             );
 
             Prompt::updateOrCreate(

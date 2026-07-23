@@ -1,4 +1,4 @@
-<!-- Sidebar Component (Partials) -->
+<!-- Sidebar Component (Partials) — Fullstack Session Auth -->
 <aside id="appSidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full md:translate-x-0 bg-white/80 backdrop-blur-md border-r border-slate-200/60 flex flex-col justify-between p-4">
     <div class="flex flex-col h-[calc(100vh-100px)]">
         <!-- Logo Header -->
@@ -38,6 +38,11 @@
                 <i class="bi bi-star-fill text-lg"></i>
                 <span>Jawaban Favorit</span>
             </a>
+
+            <a href="/profile" class="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 {{ request()->is('profile*') ? 'bg-terracotta/10 text-terracotta font-bold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                <i class="bi bi-person-fill-gear text-lg"></i>
+                <span>Profil Saya</span>
+            </a>
         </nav>
 
         <!-- Divider & Chat History Section Header -->
@@ -46,23 +51,23 @@
             <i class="bi bi-clock-history"></i>
         </div>
 
-        <!-- Scrollable Chat History List (Premium Sidebar Integration) -->
-        <div class="flex-1 overflow-y-auto pr-1 space-y-1" id="sidebarChatHistoryList" style="max-height: calc(100vh - 480px);">
+        <!-- Scrollable Chat History List -->
+        <div class="flex-1 overflow-y-auto pr-1 space-y-1" id="sidebarChatHistoryList" style="max-height: calc(100vh - 530px);">
             <p class="text-xs text-slate-400 text-center py-4">Memuat riwayat...</p>
         </div>
     </div>
 
     <!-- Bottom User Profile & Settings -->
     <div class="pt-4 border-t border-slate-100 space-y-2 shrink-0">
-        <!-- User Info Badge -->
+        <!-- User Info Badge (Server-Side Rendered via Auth::user()) -->
         <div class="flex items-center justify-between p-2.5 rounded-2xl bg-slate-100/70 border border-slate-200/50">
             <div class="flex items-center gap-2.5 overflow-hidden">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-r from-amber-400 to-terracotta flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm" id="sidebarUserAvatar">
-                    🧒
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-r from-amber-400 to-terracotta flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
+                    {{ mb_substr(Auth::user()->name ?? 'U', 0, 1) }}
                 </div>
                 <div class="truncate">
-                    <p class="font-outfit font-bold text-xs text-slate-900 truncate" id="sidebarUserName">User</p>
-                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wider" id="sidebarUserRole">anak</span>
+                    <p class="font-outfit font-bold text-xs text-slate-900 truncate">{{ Auth::user()->name ?? 'User' }}</p>
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wider">{{ Auth::user()->role ?? 'anak' }}</span>
                 </div>
             </div>
 
@@ -72,22 +77,24 @@
             </button>
         </div>
 
+        <!-- Hidden Logout Form (CSRF Protected) -->
+        <form id="logoutForm" action="/logout" method="POST" class="hidden">
+            @csrf
+        </form>
+
         <a href="/" class="block text-center text-xs font-semibold text-slate-400 hover:text-terracotta transition-colors py-1">
             <i class="bi bi-house-door-fill mr-1"></i> Beranda Utama
         </a>
     </div>
 </aside>
 
-<!-- JavaScript for Sidebar Chat History -->
+<!-- JavaScript for Sidebar Chat History (Fullstack — CSRF Session Auth) -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
-
         // Load Sidebar History on init
         fetchSidebarHistory();
 
-        // Listen for customized custom events to refresh history
+        // Listen for custom events to refresh history
         window.addEventListener('refreshSidebarHistory', fetchSidebarHistory);
 
         async function fetchSidebarHistory() {
@@ -95,17 +102,12 @@
             if (!container) return;
 
             try {
-                const res = await fetch('/api/chat/history', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const res = await ajaxRequest('/chat/history');
+                if (!res) return;
                 const result = await res.json();
 
                 if (res.ok && result.status === 'success') {
-                    const sessions = result.data;
-                    renderSidebarHistory(sessions);
+                    renderSidebarHistory(result.data);
                 } else {
                     container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Gagal memuat riwayat.</p>`;
                 }
@@ -125,9 +127,9 @@
             const activeSessionId = urlParams.get('session_id') ? parseInt(urlParams.get('session_id')) : null;
 
             const topicEmojis = {
-                'Matematika Dasar': '🍕',
-                'Sains': '🚀',
-                'Bahasa': '📚',
+                'Matematika': '🍕',
+                'Sains / IPA': '🚀',
+                'Bahasa Indonesia': '📚',
                 'Pengetahuan Umum': '🌐'
             };
 
@@ -144,17 +146,13 @@
                             <span class="truncate block">${escapeHtml(session.title || 'Percakapan Tutor')}</span>
                         </div>
 
-                        <!-- Action Buttons (Visible on hover or if pinned) -->
                         <div class="flex items-center gap-1 shrink-0 ${session.is_pinned ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity duration-150'}">
-                            <!-- Pin/Unpin -->
                             <button onclick="event.stopPropagation(); togglePinSession(${session.id})" class="p-0.5 text-slate-400 hover:text-terracotta rounded transition-colors" title="${session.is_pinned ? 'Lepas Sematan' : 'Sematkan Ke Paling Atas'}">
                                 <i class="bi ${session.is_pinned ? 'bi-pin-fill text-terracotta' : 'bi-pin-angle'}"></i>
                             </button>
-                            <!-- Rename -->
                             <button onclick="event.stopPropagation(); renameSessionPrompt(${session.id}, '${escapeQuote(session.title)}')" class="p-0.5 text-slate-400 hover:text-terracotta rounded transition-colors" title="Ubah Judul">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
-                            <!-- Delete -->
                             <button onclick="event.stopPropagation(); deleteSessionConfirm(${session.id})" class="p-0.5 text-slate-400 hover:text-red-500 rounded transition-colors" title="Hapus Chat">
                                 <i class="bi bi-trash3-fill"></i>
                             </button>
@@ -169,54 +167,35 @@
         // Action: Pin / Unpin
         window.togglePinSession = async function(id) {
             try {
-                const res = await fetch(`/api/chat/history/${id}/pin`, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (res.ok) {
-                    fetchSidebarHistory();
-                }
+                const res = await ajaxRequest(`/chat/history/${id}/pin`, { method: 'POST' });
+                if (res && res.ok) fetchSidebarHistory();
             } catch (e) {
                 console.error('Failed to pin session', e);
             }
         };
 
-        // Action: Rename Prompt
+        // Action: Rename
         window.renameSessionPrompt = async function(id, currentTitle) {
             const newTitle = prompt('Masukkan nama/judul percakapan baru:', currentTitle);
-            if (newTitle === null) return; // Cancel
-            
+            if (newTitle === null) return;
             const trimmed = newTitle.trim();
-            if (!trimmed) {
-                alert('Judul tidak boleh kosong!');
-                return;
-            }
+            if (!trimmed) { alert('Judul tidak boleh kosong!'); return; }
 
             try {
-                const res = await fetch(`/api/chat/history/${id}`, {
+                const res = await ajaxRequest(`/chat/history/${id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
                     body: JSON.stringify({ title: trimmed })
                 });
 
-                if (res.ok) {
+                if (res && res.ok) {
                     fetchSidebarHistory();
-                    
-                    // If we are currently viewing this chat page session, update page title
                     const urlParams = new URLSearchParams(window.location.search);
                     const activeSessionId = urlParams.get('session_id') ? parseInt(urlParams.get('session_id')) : null;
                     if (activeSessionId === id) {
                         const titleEl = document.getElementById('chatSessionTitle');
                         if (titleEl) titleEl.textContent = trimmed;
                     }
-                } else {
+                } else if (res) {
                     const data = await res.json();
                     alert(data.message || 'Gagal mengubah judul.');
                 }
@@ -225,28 +204,18 @@
             }
         };
 
-        // Action: Delete Session Confirm
+        // Action: Delete
         window.deleteSessionConfirm = async function(id) {
             if (!confirm('Apakah kamu yakin ingin menghapus riwayat percakapan ini beserta seluruh pesannya?')) return;
 
             try {
-                const res = await fetch(`/api/chat/history/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const res = await ajaxRequest(`/chat/history/${id}`, { method: 'DELETE' });
 
-                if (res.ok) {
+                if (res && res.ok) {
                     fetchSidebarHistory();
-
-                    // If we deleted the current active session, redirect to fresh chat
                     const urlParams = new URLSearchParams(window.location.search);
                     const activeSessionId = urlParams.get('session_id') ? parseInt(urlParams.get('session_id')) : null;
-                    if (activeSessionId === id) {
-                        window.location.href = '/chat';
-                    }
+                    if (activeSessionId === id) window.location.href = '/chat';
                 } else {
                     alert('Gagal menghapus percakapan.');
                 }
