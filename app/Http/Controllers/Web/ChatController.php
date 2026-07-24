@@ -27,7 +27,7 @@ class ChatController extends Controller
     {
         $topics = Topic::with('examplePrompts')->get();
 
-        return view('chat', compact('topics'));
+        return view('user.chat', compact('topics'));
     }
 
     /**

@@ -44,7 +44,7 @@ class FavoriteController extends Controller
             ];
         });
 
-        return view('favorites', ['favorites' => $data]);
+        return view('user.favorites', ['favorites' => $data]);
     }
 
     /**

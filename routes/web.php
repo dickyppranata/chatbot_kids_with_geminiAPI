@@ -68,3 +68,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile',           [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password',  [ProfileController::class, 'updatePassword'])->name('profile.password');
 });
+
+// =========================================================================
+// ADMIN ROUTES (Hanya untuk User dengan Role 'admin')
+// =========================================================================
+Route::middleware(['auth', 'ensure.admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+});
+

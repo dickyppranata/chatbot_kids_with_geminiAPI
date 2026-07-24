@@ -38,6 +38,6 @@ class DashboardController extends Controller
             ->take(4)
             ->get();
 
-        return view('dashboard', compact('stats', 'topics', 'recentChats'));
+        return view('user.dashboard', compact('stats', 'topics', 'recentChats'));
     }
 }
