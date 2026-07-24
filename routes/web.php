@@ -74,5 +74,9 @@ Route::middleware('auth')->group(function () {
 // =========================================================================
 Route::middleware(['auth', 'ensure.admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+    Route::resource('/users', \App\Http\Controllers\Admin\UserManagement::class);
+    Route::resource('/topics', \App\Http\Controllers\Admin\TopicController::class);
+    Route::resource('/prompts', \App\Http\Controllers\Admin\PromptController::class);
+    Route::resource('/example-prompts', \App\Http\Controllers\Admin\ExamplePromptController::class);
 });
 
