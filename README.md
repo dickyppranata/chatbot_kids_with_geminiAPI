@@ -1,4 +1,4 @@
-##AI Learning Assistant for Children
+*AI Learning Assistant for Children*
 
 Website chatbot edukasi yang dirancang untuk membantu anak usia 10–14 tahun belajar secara interaktif menggunakan teknologi Artificial Intelligence.
 
