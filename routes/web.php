@@ -78,5 +78,8 @@ Route::middleware(['auth', 'ensure.admin'])->prefix('admin')->name('admin.')->gr
     Route::resource('/topics', \App\Http\Controllers\Admin\TopicController::class);
     Route::resource('/prompts', \App\Http\Controllers\Admin\PromptController::class);
     Route::resource('/example-prompts', \App\Http\Controllers\Admin\ExamplePromptController::class);
+    Route::get('/chat-history', [\App\Http\Controllers\Admin\ChatHistoryController::class, 'index'])->name('chat-history.index');
+    Route::get('/chat-history/{user}', [\App\Http\Controllers\Admin\ChatHistoryController::class, 'show'])->name('chat-history.show');
+    Route::delete('/chat-history/session/{session}', [\App\Http\Controllers\Admin\ChatHistoryController::class, 'destroySession'])->name('chat-history.destroy-session');
 });
 
