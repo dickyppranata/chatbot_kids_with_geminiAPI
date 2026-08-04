@@ -1,5 +1,5 @@
 <!-- Sidebar Component (Partials) — Fullstack Session Auth -->
-<aside id="appSidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full md:translate-x-0 bg-white/80 backdrop-blur-md border-r border-slate-200/60 flex flex-col justify-between p-4">
+<aside id="appSidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform duration-300 -translate-x-full bg-white/80 backdrop-blur-md border-r border-slate-200/60 flex flex-col justify-between p-4">
     <div class="flex flex-col h-[calc(100vh-100px)]">
         <!-- Logo Header -->
         <div class="flex items-center gap-3 px-2 py-3 mb-6 border-b border-slate-100 shrink-0">

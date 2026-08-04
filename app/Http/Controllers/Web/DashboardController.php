@@ -16,9 +16,16 @@ class DashboardController extends Controller
      * GET /dashboard
      * Render halaman dashboard dengan data statistik dan topik langsung dari database (server-side).
      */
-    public function index(): View
+    public function index(): View|\Illuminate\Http\RedirectResponse
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+
+        // Jika user yang login adalah admin, alihkan ke dashboard admin
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $userId = $user->id;
 
         // Agregasi statistik user
         $stats = [

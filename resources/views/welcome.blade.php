@@ -46,9 +46,15 @@
 
             <div class="flex items-center gap-3">
                 @auth
-                    <a href="/dashboard" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-terracotta to-orange-600 text-white font-outfit font-bold text-sm shadow-md shadow-terracotta/20 hover:shadow-lg hover:shadow-terracotta/30 hover:-translate-y-0.5 transition-all no-underline">
-                        <i class="bi bi-grid-1x2-fill mr-1"></i> Dashboard Saya
-                    </a>
+                    @if(auth()->user()->isAdmin())
+                        <a href="{{ route('admin.dashboard') }}" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-terracotta to-orange-600 text-white font-outfit font-bold text-sm shadow-md shadow-terracotta/20 hover:shadow-lg hover:shadow-terracotta/30 hover:-translate-y-0.5 transition-all no-underline flex items-center gap-1.5">
+                            <i class="bi bi-shield-lock-fill"></i> Dashboard Admin
+                        </a>
+                    @else
+                        <a href="/dashboard" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-terracotta to-orange-600 text-white font-outfit font-bold text-sm shadow-md shadow-terracotta/20 hover:shadow-lg hover:shadow-terracotta/30 hover:-translate-y-0.5 transition-all no-underline flex items-center gap-1.5">
+                            <i class="bi bi-grid-1x2-fill"></i> Dashboard Saya
+                        </a>
+                    @endif
                 @else
                     <a href="/login" class="px-5 py-2.5 rounded-full bg-white border border-slate-200 text-slate-700 font-outfit font-bold text-sm hover:bg-slate-50 transition-all no-underline shadow-sm">Masuk</a>
                     <a href="/register" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-terracotta to-orange-600 text-white font-outfit font-bold text-sm shadow-md shadow-terracotta/20 hover:shadow-lg hover:shadow-terracotta/30 hover:-translate-y-0.5 transition-all no-underline">Daftar Akun</a>

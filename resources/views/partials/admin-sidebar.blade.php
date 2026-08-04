@@ -1,5 +1,5 @@
 <!-- Admin Sidebar Component (Partials) -->
-<aside id="adminSidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full md:translate-x-0 bg-slate-900 text-white flex flex-col justify-between p-4 shadow-2xl">
+<aside id="adminSidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform duration-300 -translate-x-full bg-slate-900 text-white flex flex-col justify-between p-4 shadow-2xl">
     <div class="flex flex-col h-[calc(100vh-80px)]">
         
         <!-- Logo & Admin Branding Header -->
