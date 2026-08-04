@@ -80,7 +80,7 @@
                     <!-- Answer Markdown Text -->
                     <div class="prose prose-slate max-w-none text-sm leading-relaxed text-slate-800 font-medium space-y-2">
                         <span class="text-slate-400 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Jawaban Kakak AI:</span>
-                        <div class="pl-2 border-l-2 border-slate-200">{!! nl2br(e($item['answer'])) !!}</div>
+                        <div class="fav-answer-content pl-2 border-l-2 border-slate-200">{!! nl2br(e($item['answer'])) !!}</div>
                     </div>
 
                     <!-- Action Link Button -->
@@ -99,6 +99,37 @@
 
 @push('scripts')
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.fav-answer-content').forEach(el => {
+            let html = el.innerHTML;
+
+            // 1. Block math $$ eq $$
+            html = html.replace(/\$\$\s*([\s\S]*?)\s*\$\$/g, (m, eq) => {
+                return `<div class="my-2.5 py-2.5 px-4 bg-amber-50/90 border border-amber-200/90 rounded-2xl font-mono font-bold text-slate-900 text-center shadow-xs text-sm">${eq.trim()}</div>`;
+            });
+
+            // 2. Inline math $ eq / var $
+            html = html.replace(/\$([^\$\n]+)\$/g, (m, math) => {
+                const t = math.trim();
+                if (/^[a-zA-Z0-9]$/.test(t)) {
+                    return `<span class="inline-flex items-center justify-center bg-amber-100/90 text-amber-900 border border-amber-300/80 px-1.5 py-0.2 rounded-md font-mono font-bold text-[13px] mx-0.5">${t}</span>`;
+                }
+                return `<span class="inline-flex items-center bg-slate-100 text-slate-900 border border-slate-200/80 px-2 py-0.5 rounded-lg font-mono font-bold text-xs md:text-sm mx-1 shadow-2xs">${t}</span>`;
+            });
+
+            // 3. Powers x^2 -> x<sup>2</sup>
+            html = html.replace(/([a-zA-Z0-9\)]+)\^([a-zA-Z0-9]+)/g, '$1<sup>$2</sup>');
+
+            // 4. Bold **text**
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>');
+
+            // 5. Italic *text*
+            html = html.replace(/\*(.*?)\*/g, '<em class="italic text-slate-700">$1</em>');
+
+            el.innerHTML = html;
+        });
+    });
+
     // Action: Unfavorite directly from view via Session CSRF AJAX
     async function unfavoriteItem(favoriteId, messageId) {
         try {

@@ -485,9 +485,44 @@
         }
 
         function formatMarkdown(text) {
+            if (!text) return '';
+
             let formatted = escapeHtml(text);
-            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // 1. Convert block math $$ equation $$ -> Styled Equation Card
+            formatted = formatted.replace(/\$\$\s*([\s\S]*?)\s*\$\$/g, (match, eq) => {
+                return `<div class="my-2.5 py-2.5 px-4 bg-amber-50/90 border border-amber-200/90 rounded-2xl font-mono font-bold text-slate-900 text-center shadow-xs text-sm">${eq.trim()}</div>`;
+            });
+
+            // 2. Convert inline math $ equation / variable $ -> Styled Inline Math Badge
+            formatted = formatted.replace(/\$([^\$\n]+)\$/g, (match, mathContent) => {
+                const trimmed = mathContent.trim();
+                // Single variable like x, y, a
+                if (/^[a-zA-Z0-9]$/.test(trimmed)) {
+                    return `<span class="inline-flex items-center justify-center bg-amber-100/90 text-amber-900 border border-amber-300/80 px-1.5 py-0.2 rounded-md font-mono font-bold text-[13px] mx-0.5">${trimmed}</span>`;
+                }
+                // Math equation like x + 5 = 12
+                return `<span class="inline-flex items-center bg-slate-100 text-slate-900 border border-slate-200/80 px-2 py-0.5 rounded-lg font-mono font-bold text-xs md:text-sm mx-1 shadow-2xs">${trimmed}</span>`;
+            });
+
+            // 3. Exponents/powers like x^2 or a^n -> x<sup>2</sup>
+            formatted = formatted.replace(/([a-zA-Z0-9\)]+)\^([a-zA-Z0-9]+)/g, '$1<sup>$2</sup>');
+
+            // 4. Bold text **text**
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>');
+
+            // 5. Italic text *text*
+            formatted = formatted.replace(/\*(.*?)\*/g, '<em class="italic text-slate-700">$1</em>');
+
+            // 6. Ordered list items "1. ", "2. "
+            formatted = formatted.replace(/^(\d+)\.\s+(.*)$/gm, '<div class="flex items-start gap-2 my-1 pl-1"><span class="font-bold text-terracotta shrink-0">$1.</span><span>$2</span></div>');
+
+            // 7. Unordered list items "- " or "* "
+            formatted = formatted.replace(/^[\-\*]\s+(.*)$/gm, '<div class="flex items-start gap-2 my-1 pl-1"><span class="text-terracotta font-bold shrink-0">•</span><span>$2</span></div>');
+
+            // 8. Line breaks
             formatted = formatted.replace(/\n/g, '<br>');
+
             return formatted;
         }
 

@@ -211,7 +211,7 @@ Model: Halo Dek! Lambang negara kita adalah burung Garuda Pancasila yang gagah p
             $topic = Topic::updateOrCreate(
                 ['slug' => $data['slug']],
                 [
-                    'name'        => $data['name'],
+                    'name' => $data['name'],
                     'description' => $data['description']
                 ]
             );

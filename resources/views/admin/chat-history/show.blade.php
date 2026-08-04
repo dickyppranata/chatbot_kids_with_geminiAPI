@@ -161,8 +161,8 @@
                                             <span>•</span>
                                             <span>{{ $msg->created_at->format('H:i') }}</span>
                                         </div>
-                                        <div class="p-4 rounded-3xl rounded-tl-sm bg-white border border-slate-200/80 text-slate-800 font-medium text-xs leading-relaxed shadow-sm whitespace-pre-line">
-                                            {{ $msg->message }}
+                                        <div class="p-4 rounded-3xl rounded-tl-sm bg-white border border-slate-200/80 text-slate-800 font-medium text-xs leading-relaxed shadow-sm ai-msg-content">
+                                            {!! nl2br(e($msg->message)) !!}
                                         </div>
                                     </div>
                                 </div>
@@ -193,4 +193,29 @@
     </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.ai-msg-content').forEach(el => {
+            let html = el.innerHTML;
+            // Convert block math $$ eq $$
+            html = html.replace(/\$\$\s*([\s\S]*?)\s*\$\$/g, '<div class="my-2 py-2 px-3 bg-amber-50 border border-amber-200 rounded-xl font-mono font-bold text-slate-900 text-center shadow-xs text-xs">$1</div>');
+            // Convert inline math $ eq $
+            html = html.replace(/\$([^\$\n]+)\$/g, (m, math) => {
+                const t = math.trim();
+                if (/^[a-zA-Z0-9]$/.test(t)) {
+                    return `<span class="inline-flex items-center justify-center bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 rounded font-mono font-bold text-[12px] mx-0.5">${t}</span>`;
+                }
+                return `<span class="inline-flex items-center bg-slate-100 text-slate-900 border border-slate-200 px-1.5 py-0.5 rounded font-mono font-bold text-xs mx-1">${t}</span>`;
+            });
+            // Powers
+            html = html.replace(/([a-zA-Z0-9\)]+)\^([a-zA-Z0-9]+)/g, '$1<sup>$2</sup>');
+            // Bold **text**
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>');
+            // Italic *text*
+            html = html.replace(/\*(.*?)\*/g, '<em class="italic text-slate-700">$1</em>');
+            el.innerHTML = html;
+        });
+    });
+</script>
 @endsection
