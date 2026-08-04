@@ -1,0 +1,6 @@
+* [33md526bff[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m feat: implement admin dashboard for monitoring and managing student chat history
+* [33mec7d961[m feat: implement admin CRUD modules for topics, prompts, example prompts, and user management
+* [33m568661b[m perbaikan direktori user controller dan blade. perancangan fitur admin dashboard
+* [33m7d196d5[m mengubah sistem menjadi fullstack
+* [33m00e5d80[m seeder dan favorite fitur
+* [33m4aa0376[m fitur login. dashboard, chat user

@@ -81,5 +81,10 @@ Route::middleware(['auth', 'ensure.admin'])->prefix('admin')->name('admin.')->gr
     Route::get('/chat-history', [\App\Http\Controllers\Admin\ChatHistoryController::class, 'index'])->name('chat-history.index');
     Route::get('/chat-history/{user}', [\App\Http\Controllers\Admin\ChatHistoryController::class, 'show'])->name('chat-history.show');
     Route::delete('/chat-history/session/{session}', [\App\Http\Controllers\Admin\ChatHistoryController::class, 'destroySession'])->name('chat-history.destroy-session');
+
+    // Profil Admin
+    Route::get('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'index'])->name('profile.index');
+    Route::put('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [\App\Http\Controllers\Admin\ProfileController::class, 'updatePassword'])->name('profile.password');
 });
 
